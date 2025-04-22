@@ -1,0 +1,75 @@
+# build image:
+docker build -t identity-service:0.0.8 .
+
+# list image:
+docker image ls
+
+# remove image:
+docker image rm hieund18/identity-service:0.0.5
+
+# list container:
+docker ps -a
+
+# remove container:
+docker rm identity-service
+
+# create network:
+docker network create hieu-network
+
+# list network:
+docker network ls
+
+# create mysql with network:
+docker run --network hieu-network --name mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -d mysql:8.0.40-debian
+
+# create container:
+docker run --network hieu-network --name identity-service -p 8080:8080 -e DBMS_CONNECTION=jdbc:mysql://mysql:3306/identity_service identity-service:0.0.8
+
+#### Day len dockerhub
+# build image:
+docker build -t hieund18/identity-service-2:0.0.1 .
+
+# push docker image to docker hub:
+docker image push hieund18/identity-service-2:0.0.1
+
+# pull from docker hub
+docker pull hieund18/identity-service-2:0.0.1
+
+# create container:
+docker run --network hieu-network --name identity-service -p 8080:8080 -e DBMS_CONNECTION=jdbc:mysql://mysql:3306/identity_service hieund18/identity-service-2:0.0.1
+
+# show task manager:
+htop
+
+# install docker on ubuntu:
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+
+# To install the latest version, run:
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Verify that the installation is successful by running the hello-world image:
+sudo docker run hello-world
+
+# create network:
+sudo docker network create hieu-network
+
+# create mysql container:
+sudo docker run --network hieu-network --name mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -d mysql:8.0.40-debian
+
+# pull prj:
+sudo docker run --network hieu-network --name identity-service -p 8080:8080 -e DBMS_CONNECTION=jdbc:mysql://mysql:3306/identity_service -d hieund18/identity-service-2:0.0.1
+
+# start container:
+sudo docker start identity-service
