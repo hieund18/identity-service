@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import com.example.identity_service.constant.PredefinedRole;
+import com.example.identity_service.dto.request.PasswordCreationRequest;
 import com.example.identity_service.dto.request.UserCreationRequest;
 import com.example.identity_service.dto.request.UserUpdateRequest;
 import com.example.identity_service.dto.response.UserResponse;
@@ -28,6 +29,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -38,12 +40,12 @@ public class UserServiceImpl implements UserService {
     UserRepository userRepository;
     RoleRepository roleRepository;
     UserMapper userMapper;
+    PasswordEncoder passwordEncoder;
 
     @Override
     public UserResponse createUser(UserCreationRequest request) {
         User user = userMapper.toUser(request);
 
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         HashSet<Role> roles = new HashSet<>();
@@ -58,6 +60,23 @@ public class UserServiceImpl implements UserService {
         }
 
         return userMapper.toUserResponse(user);
+    }
+
+    @Override
+    public void createPassword(PasswordCreationRequest request) {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        var username = authentication.getName();
+
+        var user = userRepository.findByUsername(username).orElseThrow(
+            () -> new AppException(ErrorCode.USER_NOT_EXISTED)
+        );
+
+        if(StringUtils.hasText(user.getPassword()))
+            throw new AppException(ErrorCode.PASSWORD_EXISTED);
+
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        userRepository.save(user);
     }
 
     @Override
@@ -81,9 +100,15 @@ public class UserServiceImpl implements UserService {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         var username = authentication.getName();
 
-        return userMapper.toUserResponse(userRepository
-                .findByUsername(username)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED)));
+        var user = userRepository.findByUsername(username).orElseThrow(
+                () -> new AppException(ErrorCode.USER_NOT_EXISTED)
+        );
+
+        var userResponse = userMapper.toUserResponse(user);
+
+        userResponse.setNoPassword(!StringUtils.hasText(user.getPassword()));
+
+        return userResponse;
     }
 
     @Override
@@ -91,7 +116,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         userMapper.updateUser(user, request);
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         List<Role> roles = roleRepository.findAllById(request.getRoles());

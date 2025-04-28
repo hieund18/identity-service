@@ -1,12 +1,13 @@
 # Identity Service
 
-A Spring Boot application for user management, roles, permissions, JWT authentication, token creation, logout, and refresh. Includes unit tests, Docker packaging, Docker Hub push, and AWS deployment.
+A Spring Boot application for user management, roles, permissions, JWT authentication, token creation, logout, refresh and Google login. Includes unit tests, Docker packaging, Docker Hub push, and AWS deployment.
 
 ## Features
 
 - **User Management**: Create, update, delete, fetch users.
 - **Roles & Permissions**: Assign roles/permissions to users.
 - **JWT Auth**: Login, token creation, refresh, logout.
+- **Google Login**: Authenticate users via Google OAuth2.
 - **Unit Tests**: Test core functions with JUnit/Mockito.
 - **Docker**: Package with Dockerfile, push to Docker Hub.
 - **AWS**: Deploy on EC2.
@@ -18,6 +19,7 @@ A Spring Boot application for user management, roles, permissions, JWT authentic
 - Docker
 - AWS account
 - Docker Hub account
+- Google Cloud Console account (for Google OAuth2)
 
 ## Setup
 
@@ -38,6 +40,11 @@ spring:
     url: jdbc:mysql://localhost:3306/identity_service
     username: your_username
     password: your_password
+outbound:
+  identity:
+    client-id: your-google-client-id
+    client-secret: your-google-client-secret
+    redirect-uri: your-redirect-uri
 ```
 
 ### 3. Build

@@ -7,6 +7,10 @@ import com.example.identity_service.entity.Role;
 import com.example.identity_service.entity.User;
 import com.example.identity_service.repository.RoleRepository;
 import com.example.identity_service.repository.UserRepository;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,12 +20,17 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class ApplicationInitConfig {
+    PasswordEncoder passwordEncoder;
 
-    private static final String ADMIN_USERNAME = "admin";
+    @NonFinal
+    static final String ADMIN_USERNAME = "admin";
 
-    private static final String ADMIN_PASSWORD = "admin";
+    @NonFinal
+    static final String ADMIN_PASSWORD = "admin";
 
     @Bean
     @ConditionalOnProperty(
@@ -42,8 +51,6 @@ public class ApplicationInitConfig {
                         .name(PredefinedRole.ADMIN_ROLE)
                         .description("Admin role")
                         .build());
-
-                PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
 
                 userRepository.save(User.builder()
                         .username(ADMIN_USERNAME)

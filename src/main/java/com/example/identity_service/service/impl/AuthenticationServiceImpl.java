@@ -3,22 +3,22 @@ package com.example.identity_service.service.impl;
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
-import java.util.StringJoiner;
-import java.util.UUID;
+import java.util.*;
 
-import com.example.identity_service.dto.request.AuthenticationRequest;
-import com.example.identity_service.dto.request.IntrospectRequest;
-import com.example.identity_service.dto.request.LogoutRequest;
-import com.example.identity_service.dto.request.RefreshRequest;
+import com.example.identity_service.constant.PredefinedRole;
+import com.example.identity_service.dto.request.*;
 import com.example.identity_service.dto.response.AuthenticationResponse;
 import com.example.identity_service.dto.response.IntrospectResponse;
 import com.example.identity_service.entity.InvalidatedToken;
+import com.example.identity_service.entity.Role;
 import com.example.identity_service.entity.User;
 import com.example.identity_service.exception.AppException;
 import com.example.identity_service.exception.ErrorCode;
 import com.example.identity_service.repository.InvalidatedTokenRepository;
+import com.example.identity_service.repository.RoleRepository;
 import com.example.identity_service.repository.UserRepository;
+import com.example.identity_service.repository.httpclient.OutboundIdentityClient;
+import com.example.identity_service.repository.httpclient.OutboundUserClient;
 import com.example.identity_service.service.AuthenticationService;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -42,7 +42,10 @@ import org.springframework.util.CollectionUtils;
 @Slf4j
 public class AuthenticationServiceImpl implements AuthenticationService {
     UserRepository userRepository;
+    RoleRepository roleRepository;
     InvalidatedTokenRepository invalidatedTokenRepository;
+    OutboundIdentityClient outboundIdentityClient;
+    OutboundUserClient outboundUserClient;
 
     @NonFinal
     @Value("${jwt.signer-key}")
@@ -55,6 +58,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @NonFinal
     @Value("${jwt.refreshable-duration}")
     protected long REFRESHABLE_DURATION;
+
+    @NonFinal
+    @Value("${outbound.identity.client-id}")
+    protected String CLIENT_ID;
+
+    @NonFinal
+    @Value("${outbound.identity.client-secret}")
+    protected String CLIENT_SECRET;
+
+    @NonFinal
+    @Value("${outbound.identity.redirect-uri}")
+    protected String REDIRECT_URI;
+
+    @NonFinal
+    protected final String GRANT_TYPE = "authorization_code";
 
     @Override
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
@@ -72,6 +90,42 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String token = generateToken(user);
 
         return AuthenticationResponse.builder().token(token).build();
+    }
+
+    @Override
+    public AuthenticationResponse outboundAuthenticate(String code) {
+        var response = outboundIdentityClient.exchangeToken(ExchangeTokenRequest.builder()
+                .code(code)
+                .clientId(CLIENT_ID)
+                .clientSecret(CLIENT_SECRET)
+                .redirectUri(REDIRECT_URI)
+                .grantType(GRANT_TYPE)
+                .build());
+
+        log.info("Client secret: {}", CLIENT_SECRET);
+        log.info("TOKEN RESPONSE: {}", response);
+
+        var userInfo = outboundUserClient.getUserInfo("json", response.getAccessToken());
+
+        log.info("User info: {}", userInfo);
+
+        Set<Role> roles = new HashSet<>();
+        roleRepository.findById(PredefinedRole.USER_ROLE).ifPresent(roles::add);
+
+        var user = userRepository.findByUsername(userInfo.getEmail()).orElseGet(
+                () -> userRepository.save(User.builder()
+                        .username(userInfo.getEmail())
+                        .firstName(userInfo.getGivenName())
+                        .lastName(userInfo.getFamilyName())
+                        .roles(roles)
+                        .build())
+        );
+
+        String token = generateToken(user);
+
+        return AuthenticationResponse.builder()
+                .token(token)
+                .build();
     }
 
     @Override
@@ -176,11 +230,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         boolean verified = signedJWT.verify(jwsVerifier);
         var expiryTime = isRefresh
                 ? (new Date(signedJWT
-                        .getJWTClaimsSet()
-                        .getIssueTime()
-                        .toInstant()
-                        .plus(REFRESHABLE_DURATION, ChronoUnit.SECONDS)
-                        .toEpochMilli()))
+                .getJWTClaimsSet()
+                .getIssueTime()
+                .toInstant()
+                .plus(REFRESHABLE_DURATION, ChronoUnit.SECONDS)
+                .toEpochMilli()))
                 : signedJWT.getJWTClaimsSet().getExpirationTime();
 
         if (!(verified && expiryTime.after(new Date()))) throw new AppException(ErrorCode.UNAUTHENTICATED);

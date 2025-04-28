@@ -21,7 +21,8 @@ import org.springframework.web.filter.CorsFilter;
 @EnableMethodSecurity
 public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINTS = {
-        "/auth/token", "/auth/introspect", "/auth/logout", "/auth/refresh", "/users"
+            "/auth/token", "/auth/introspect", "/auth/logout", "/auth/refresh", "/users",
+            "/auth/outbound/authentication"
     };
 
     private final CustomJwtDecoder customJwtDecoder;
@@ -50,7 +51,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public CorsFilter corsFilter(){
+    public CorsFilter corsFilter() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
 
         corsConfiguration.addAllowedOrigin("http://localhost:3000");
@@ -58,7 +59,7 @@ public class SecurityConfig {
         corsConfiguration.addAllowedHeader("*");
 
         UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();
-        urlBasedCorsConfigurationSource.registerCorsConfiguration("/**" ,corsConfiguration);
+        urlBasedCorsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
 
         return new CorsFilter(urlBasedCorsConfigurationSource);
     }

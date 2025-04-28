@@ -69,7 +69,7 @@ sudo docker network create hieu-network
 sudo docker run --network hieu-network --name mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -d mysql:8.0.40-debian
 
 # pull prj:
-sudo docker run --network hieu-network --name identity-service -p 8080:8080 -e DBMS_CONNECTION=jdbc:mysql://mysql:3306/identity_service -d hieund18/identity-service-2:0.0.1
+sudo docker run --network hieu-network --name identity-service -p 8080:8080 -e DBMS_CONNECTION=jdbc:mysql://mysql:3306/identity_service hieund18/identity-service-2:0.0.1
 
 # start container:
 sudo docker start identity-service

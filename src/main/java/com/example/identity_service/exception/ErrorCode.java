@@ -19,6 +19,7 @@ public enum ErrorCode {
     ROLE_CANNOT_BLANK(1007, "PredefinedRole cannot blank", HttpStatus.BAD_REQUEST),
     UNAUTHENTICATED(1008, "Unauthenticated", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1009, "You do not have permission", HttpStatus.FORBIDDEN),
+    PASSWORD_EXISTED(1010, "Password existed", HttpStatus.BAD_REQUEST)
     ;
 
     ErrorCode(int code, String message, HttpStatusCode httpStatusCode) {
